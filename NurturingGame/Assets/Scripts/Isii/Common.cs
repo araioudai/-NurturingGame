@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Unity.Jobs;
 
 public class Common
 {
@@ -11,24 +10,26 @@ public class Common
     [Serializable]
     public enum JobHandle
     {
-        None,
-        Warrior,
+        Knight,
         Mage,
-        Archer
+        Fighter,
+        Thief,
+        Gambler
     }
 
     /// <summary>
-    /// ステータス json用クラス
+    /// 追加ステータス json用クラス
     /// </summary>
     [Serializable]
     public class Status
     {
         public int HP;
         public int MP;
-        public int ATK;
-        public int DEF;
+        public int POW;
         public int INT;
+        public int DEF;
         public int AGI;
+        public int LUK;
     }
 
     /// <summary>
@@ -41,17 +42,30 @@ public class Common
         public JobHandle job;
         public int level;
         public int exp;
-        public Status status;
+        public Status firstStatus;
+        public Status addStatus;
         public int statusPoints;
         //public List<string> skills;
     }
 
     #endregion
 
-//////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////
+
+    /// <summary>
+    /// データ保存用
+    /// </summary>
+    [Serializable]
+    public class SaveData
+    {
+        public int currentPlayerNo;
+        public int PlayerNoCount;
+        public List<PlayerData> playerData = new();
+    }
 
 
 
+    //////////////////////////////////////////////////////////////////////////////
 
     /// <summary>
     /// 設定データ
@@ -59,7 +73,6 @@ public class Common
     #region SettingData
     // データ
     public static string settingFilePath = "Setting.json";
-    public static string playerFilePath = "Player.json";
     public SettingData settingData;
     public PlayerData playerData;
 
@@ -76,15 +89,18 @@ public class Common
     }
 
 
-
-
     #endregion
 
-
-
-
-
-
-
+    //////////////////////////////////////////////////////////////////////////////
+    /// <summary>
+    /// Title用
+    /// </summary>
+    public enum TitleSceneState
+    {
+        Title,
+        PlayGame,
+        Setting,
+        Exit
+    }
 
 }

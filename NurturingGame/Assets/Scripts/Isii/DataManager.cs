@@ -4,190 +4,157 @@ using static Common;
 
 public class DataManager : MonoBehaviour
 {
-    #region プライベート変数
-    [SerializeField] private PlayerData playerData;
+    [SerializeField] private SaveData playerDataList;
+    [SerializeField] private PlayerData currentPlayerData;
 
-    // test
-    [SerializeField] int testStatusNo = 0;
-
-    #endregion
-
-    #region パブリック変数
-
-    #endregion
+    [Header("設定")]
+    [SerializeField, Range(0, 127)] private int playerNoCurrent = 0; // プレイヤー番号を指定するための変数
+    [SerializeField] private JobHandle jobHandle; // 初期職業を指定するための変数
+    [SerializeField] private string playerName = "UnityChan"; // プレイヤー名を指定するための変数
 
 
-
-
-
-
-
-
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        LoadPlayerData();
-        Debug.Log("Player Name: " + playerData.name);
-        Debug.Log("Player Job: " + playerData.job);
-        Debug.Log("Player Level: " + playerData.level);
-        Debug.Log("Player EXP: " + playerData.exp);
-        Debug.Log("Player HP: " + playerData.status.HP);
-        Debug.Log("Player MP: " + playerData.status.MP);
-        Debug.Log("Player ATK: " + playerData.status.ATK);
-        Debug.Log("Player DEF: " + playerData.status.DEF);
-        Debug.Log("Player INT: " + playerData.status.INT);
-        Debug.Log("Player AGI: " + playerData.status.AGI);
-        Debug.Log("Player Status Points: " + playerData.statusPoints);
-        //foreach (var skill in playerData.skills)
-        //{
-        //    Debug.Log("Player Skill: " + skill);
-        //}
+        //LoadPlayerData();
     }
 
-    // Update is called once per frame
     void Update()
     {
-        // test
-        if (Input.GetKeyDown(KeyCode.S))
-        {
-            SavePlayerData();
-            Debug.Log("Player data saved.");
-        }
 
-        if (Input.GetKeyDown(KeyCode.U))
-        {
-            playerData.level += 1;
-            playerData.statusPoints += 5; // レベルアップ時にステータスポイントを5増加
-            SavePlayerData();
-            Debug.Log("Player leveled up to " + playerData.level + ". Status points increased to " + playerData.statusPoints);
-        }
+    }
 
-        if (Input.GetKeyDown(KeyCode.I))
+    public void LoadPlayerData()
+    {
+        Debug.Log("LoadPlayerData");
+        string filePath = Path.Combine(Application.persistentDataPath, "Players.json");
+
+        if (File.Exists(filePath))
         {
-            string[] statuses = { "HP", "MP", "ATK", "DEF", "INT", "AGI" };
-            if (testStatusNo >= 0 && testStatusNo < statuses.Length)
+            Debug.Log("LoadPlayerData: " + filePath, this);
+
+            string json = File.ReadAllText(filePath);
+            playerDataList = JsonUtility.FromJson<SaveData>(json);
+            if (playerDataList.PlayerNoCount > playerNoCurrent && playerNoCurrent >= 0 && playerDataList.playerData[playerNoCurrent] != null)
             {
-                bool result = IncreaseStatus(statuses[testStatusNo]);
-                if (result)
-                {
-                    Debug.Log(statuses[testStatusNo] + " increased successfully.");
-                }
+                Debug.Log("PlayerNo: " + playerNoCurrent, this);
+                currentPlayerData = playerDataList.playerData[playerNoCurrent];
+            }
+            else if (playerNoCurrent >= 0)
+            {
+                Debug.LogWarning("プレイヤーデータが存在しません: " + playerNoCurrent, this);
+
+                // for (int i = 0; i < playerNoCurrent; i++)
+                // {
+                //     if (playerDataList.PlayerNoCount > i) continue;
+                //     playerDataList.playerData.Add(null);
+                //     Debug.LogWarning("プレイヤーデータが存在しません(NULL): " + i, this);
+                // }
+
+                PlayerDataCreate();
+                playerDataList.playerData.Add(currentPlayerData);
+                SavePlayerData(); // 初期データを保存
             }
             else
             {
-                Debug.LogWarning("Invalid testStatusNo: " + testStatusNo);
+                Debug.LogWarning("不明な値です: " + playerNoCurrent, this);
             }
-        }
-
-        if (Input.GetKeyDown(KeyCode.RightArrow))
-        {
-            testStatusNo += 1;
-            if (testStatusNo > 5) testStatusNo = 5;
-            Debug.Log("Test status set to " + testStatusNo);
-        }
-        else if (Input.GetKeyDown(KeyCode.LeftArrow))
-        {
-            testStatusNo -= 1;
-            if (testStatusNo < 0) testStatusNo = 0;
-            Debug.Log("Test status set to " + testStatusNo);
-        }
-
-
-    }
-
-    void LoadPlayerData()
-    {
-        string filePath = Path.Combine(Application.persistentDataPath, playerFilePath);
-        if (File.Exists(filePath))
-        {
-            string json = File.ReadAllText(filePath);
-            playerData = JsonUtility.FromJson<PlayerData>(json);
         }
         else
         {
-            Debug.LogWarning("Player data file not found: " + filePath);
-            // 初期データを設定するなどの処理を行う
-            playerData = new PlayerData
+            Debug.LogWarning("プレイヤーデータファイルが見つかりません: " + filePath, this);
+            PlayerDataCreate();
+
+            // プレイヤーデータリストを初期化
+            playerDataList = new SaveData
             {
-                name = "Hero",
-                job = JobHandle.Warrior,
-                level = 1,
-                exp = 0,
-                status = new Status
-                {
-                    HP = 100,
-                    MP = 50,
-                    ATK = 10,
-                    DEF = 5,
-                    INT = 3,
-                    AGI = 7
-                },
-                statusPoints = 0
-                //skills = new List<string>()
+                playerData = new System.Collections.Generic.List<PlayerData> { currentPlayerData }
             };
+
             SavePlayerData(); // 初期データを保存
         }
+
+
+        // string filePath = Path.Combine(Application.persistentDataPath, "Player" + playerNo + ".json");
+        // if (File.Exists(filePath))
+        // {
+        //     Debug.Log("LoadPlayerData: " + filePath);
+        //     string json = File.ReadAllText(filePath);
+        //     currentPlayerData = JsonUtility.FromJson<PlayerData>(json);
+        // }
+        // else
+        // {
+        //     string firstStatusPath = Resources.Load<TextAsset>($"JsonData/{jobHandle}").text;
+        //     if (string.IsNullOrEmpty(firstStatusPath))
+        //     {
+        //         Debug.LogError("ジョブの初期ステータスデータの読み込みに失敗しました: " + jobHandle);
+        //         return;
+        //     }
+
+        //     Debug.LogWarning("プレイヤーデータファイルが見つかりません: " + filePath);
+        //     // 初期データを設定するなどの処理を行う
+        //     currentPlayerData = new PlayerData
+        //     {
+        //         name = playerName,
+        //         job = jobHandle,
+        //         level = 1,
+        //         exp = 0,
+        //         firstStatus = JsonUtility.FromJson<Status>(firstStatusPath),
+        //         addStatus = new Status(),
+        //         statusPoints = 0
+        //         //skills = new List<string>()
+        //     };
+        //     SavePlayerData(); // 初期データを保存
+        // }
     }
 
 
+    void PlayerDataCreate()
+    {
+        string firstStatusPath = Resources.Load<TextAsset>($"JsonData/{jobHandle}").text;
+        if (string.IsNullOrEmpty(firstStatusPath))
+        {
+            Debug.LogError("ジョブの初期ステータスデータの読み込みに失敗しました: " + jobHandle, this);
+            return;
+        }
+
+        // 初期データを設定するなどの処理を行う
+        currentPlayerData = new PlayerData
+        {
+            name = playerName,
+            job = jobHandle,
+            level = 1,
+            exp = 0,
+            firstStatus = JsonUtility.FromJson<Status>(firstStatusPath),
+            addStatus = new Status(),
+            statusPoints = 0
+            //skills = new List<string>()
+        };
+    }
+
+
+
+
+
+
+
+
+
+    [ContextMenu("SavePlayerData")]
     void SavePlayerData()
     {
-        string filePath = Path.Combine(Application.persistentDataPath, playerFilePath);
-        string json = JsonUtility.ToJson(playerData, true);
+        Debug.Log("SavePlayerData");
+
+        playerDataList.currentPlayerNo = playerNoCurrent;
+        playerDataList.PlayerNoCount = playerDataList.playerData.Count;
+
+        string filePath = Path.Combine(Application.persistentDataPath, "Players.json");
+        string json = JsonUtility.ToJson(playerDataList, true);
         File.WriteAllText(filePath, json);
+
+        //string filePath = Path.Combine(Application.persistentDataPath, "Player" + playerNo + ".json");
+        // string json = JsonUtility.ToJson(currentPlayerData, true);
+        // File.WriteAllText(filePath, json);
     }
-
-    // プレイヤーのステータスポイントを使用してステータスを上げるメソッド
-    public bool IncreaseStatus(string statusName)
-    {
-        if (playerData.statusPoints <= 0)
-        {
-            Debug.LogWarning("Not enough status points.");
-            return false;
-        }
-
-        switch (statusName)
-        {
-            case "HP":
-                playerData.status.HP += 10; // HPを10増加
-                break;
-            case "MP":
-                playerData.status.MP += 5; // MPを5増加
-                break;
-            case "ATK":
-                playerData.status.ATK += 2; // ATKを2増加
-                break;
-            case "DEF":
-                playerData.status.DEF += 2; // DEFを2増加
-                break;
-            case "INT":
-                playerData.status.INT += 2; // INTを2増加
-                break;
-            case "AGI":
-                playerData.status.AGI += 2; // AGIを2増加
-                break;
-            default:
-                Debug.LogWarning("Invalid status name: " + statusName);
-                return false;
-        }
-
-        playerData.statusPoints -= 1; // ステータスポイントを1減少
-        SavePlayerData(); // データを保存
-        Debug.Log(statusName + " increased. Remaining status points: " + playerData.statusPoints);
-        return true;
-    }
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
